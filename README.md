@@ -19,10 +19,11 @@ Designed to spark curiosity and learning, it provides an immersive experience co
 
 ---
 
-## 🧰 Tech Stack
-- **Frontend:** HTML, CSS, JavaScript  
-- **Design:** Canva / Figma (for visuals)  
-- **Deployment:** GitHub Pages / Netlify
+## 🛠️ Built With
+- **HTML5, CSS3, JavaScript** – Core technologies
+- **Leaflet.js** – For the interactive world map
+- **Google Fonts (Cinzel & Inter)** – Typography
+- **Responsive Design** – Works on all screen sizes
 
 ---
 
