@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Lost Cities & Civilizations</title>
+
+    <!-- Favicon for the browser tab -->
+    <link rel="icon" type="image/png" href="Lost Cities and Civilizations (Favicon).png">
+
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<style>
+/* =============== THEME TOKENS =============== */
+:root{
+  --bg: #fafafa;
+  --text: #1f2a37;
+  --muted: #5b6b7a;
+  --card: #ffffff;
+  --card-border: #e5e7eb;
+  --accent: #3b82f6;         /* primary */
+  --accent-600: #2563eb;     /* hover */
+  --accent-soft: #e8f1ff;    /* soft bg */
+  --header-overlay: rgba(0,0,0,.35);
+  --chip: #111827;
+}
+
+body.dark{
+  --bg: #0f172a;             /* slate-900 */
+  --text: #e5e7eb;           /* slate-200 */
+  --muted: #a3aec2;          /* slate-300 */
+  --card: #111827;           /* gray-900 */
+  --card-border: #1f2937;    /* gray-800 */
+  --accent: #60a5fa;         /* blue-400 */
+  --accent-600: #3b82f6;     /* blue-500 */
+  --accent-soft: #0b244a;    /* soft bg */
+  --header-overlay: rgba(0,0,0,.55);
+  --chip: #e5e7eb;
+}
+
+.opt {
+  padding: 12px 20px;
+  border: 2px solid var(--card-border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.opt.correct {
+  background: #16a34a22;
+  border-color: #16a34a;
+}
+
+.opt.wrong {
+  background: #ef444422;
+  border-color: #ef4444;
+}
+
+/* =============== GLOBAL =============== */
+*{box-sizing:border-box}
+html,body{scroll-behavior:smooth}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  line-height:1.5;
+  transition: background .35s ease, color .35s ease;
+}
+
+/* =============== HEADER =============== */
+.header{
+  position:relative;
+  padding:90px 20px 70px;
+  text-align:center;
+  color:#fff;
+  background: url('header bg - light.jpg') center/cover no-repeat;
+  isolation:isolate;
+}
+body.dark .header{ background: url('header bg - dark.jpg') center/cover no-repeat; }
+.header::after{
+  content:"";
+  position:absolute; inset:0;
+  background:var(--header-overlay);
+  z-index:0;
+}
+.header-inner{ position:relative; z-index:1; max-width:1200px; margin:0 auto; }
+.brand{ font-family:'Cinzel',serif; font-size: clamp(32px,5vw,56px); letter-spacing:.5px; margin:0 0 10px; }
+.tag{ opacity:.95; margin:0 auto 20px; max-width:800px; }
+
+.header-actions{
+  display:flex; flex-wrap:wrap; gap:10px; justify-content:center; align-items:center;
+  margin-top:18px;
+}
+.btn{
+  appearance:none; border:1px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.12);
+  color:#fff; padding:10px 14px; border-radius:10px; cursor:pointer;
+  backdrop-filter: blur(6px);
+  transition: transform .15s ease, background .2s ease, border-color .2s ease;
+  font-weight:600;
+}
+.btn:hover{ transform: translateY(-1px); background:rgba(255,255,255,.2); border-color:rgba(255,255,255,.35); }
+.btn:active{ transform: translateY(0); }
+.btn.primary{ background:var(--accent); border-color:transparent; }
+.btn.primary:hover{ background:var(--accent-600); }
+
+.search{
+  display:flex; gap:8px; align-items:center; justify-content:center;
+  margin-top:14px;
+}
+.search input{
+  width:min(720px,92vw);
+  padding:12px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.45);
+  background:rgba(255,255,255,.15); color:#fff;
+  outline:none; font-size:15px;
+  backdrop-filter: blur(6px);
+}
+.search input::placeholder{ color:rgba(255,255,255,.9); }
+
+/* =============== SECTION WRAPPER =============== */
+.section{
+  padding:56px 20px;
+}
+.section h2{
+  font-family:'Cinzel',serif; font-size: clamp(26px,3.5vw,36px);
+  margin:0 0 12px; text-align:center;
+}
+.section .sub{
+  color:var(--muted); text-align:center; margin:0 auto 26px; max-width:800px;
+}
+
+/* =============== CARDS (FLIP) =============== */
+.cards{
+  max-width:1200px; margin:0 auto;
+  display:grid; grid-template-columns: repeat(auto-fill, minmax(270px,1fr));
+  gap:22px;
+}
+.card{
+  perspective: 1200px;
+}
+.card-hit{
+  border:1px solid var(--card-border); border-radius:16px;
+  background:linear-gradient(180deg, var(--card) 0%, color-mix(in oklab, var(--card) 90%, var(--accent-soft)) 100%);
+  box-shadow: 0 8px 24px rgba(0,0,0,.08);
+  height:420px; overflow:hidden; position:relative;
+  transition: box-shadow .25s ease, transform .25s ease, border-color .25s ease;
+}
+.card-hit:hover{ box-shadow: 0 16px 40px rgba(0,0,0,.12); transform: translateY(-2px); }
+
+.card-inner{
+  position:absolute; inset:0;
+  transform-style:preserve-3d; transition: transform .85s ease;
+  cursor:pointer;
+}
+.card.is-flipped .card-inner{ transform: rotateY(180deg); }
+
+.side{
+  position:absolute; inset:0;
+  backface-visibility:hidden; -webkit-backface-visibility:hidden;
+  display:flex; flex-direction:column; gap:10px; padding:12px;
+}
+.media{
+  width:100%; height:58%; border-radius:12px; overflow:hidden; background:#000;
+  border:1px solid var(--card-border);
+}
+.media img{
+  width:100%; height:100%; object-fit:cover; display:block;
+}
+.title{
+  font-weight:700; font-size:18px; margin:6px 6px 0;
+}
+.meta{
+  margin:0 6px; display:flex; gap:8px; flex-wrap:wrap;
+}
+.chip{
+  background: var(--accent-soft); color: #fff; color: var(--chip);
+  border:1px solid var(--card-border); padding:4px 8px; border-radius:999px; font-size:12px;
+}
+.summary{ margin:2px 6px 0; font-size:14px; color:var(--muted); }
+
+/* back */
+.back{ transform: rotateY(180deg); }
+.details{
+  margin:4px 2px 0; padding-right:4px;
+  overflow:auto; scrollbar-width: thin;
+}
+.details p{ margin:.35rem 8px; font-size:14px; }
+.details b{ color:var(--text); }
+
+/* =============== MAP =============== */
+#map{
+  height:520px; width:min(1200px,92vw); margin: 10px auto 0;
+  border-radius:16px; border:1px solid var(--card-border);
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  overflow:hidden;
+}
+
+/* =============== QUIZ =============== */
+.quiz{
+  max-width:900px; margin:0 auto;
+  border:1px solid var(--card-border); background:var(--card);
+  border-radius:16px; box-shadow: 0 8px 24px rgba(0,0,0,.08);
+  overflow:hidden;
+}
+.q-header{
+  padding:16px 18px; background: color-mix(in oklab, var(--accent) 18%, var(--card));
+  border-bottom:1px solid var(--card-border);
+  display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;
+}
+.q-body{ padding:18px; }
+.q{
+  margin:0 0 20px; padding:14px; border:1px solid var(--card-border);
+  border-radius:12px; background:var(--bg);
+}
+.q p{ margin:0 0 10px; font-weight:600; }
+.opts{ display:grid; gap:8px; }
+.opt{
+  width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--card-border);
+  background:var(--card); cursor:pointer; text-align:left; font-weight:600;
+  transition: background .2s ease, border-color .2s ease, transform .06s ease;
+}
+.opt:hover{ transform: translateY(-1px); border-color:var(--accent); }
+.opt.correct{ background:#16a34a22; border-color:#16a34a; }
+.opt.wrong{ background:#ef444422; border-color:#ef4444; }
+.controls{ display:flex; gap:10px; justify-content:flex-end; }
+.controls .btn{ color:var(--text); border-color:var(--card-border); background:var(--card); }
+
+/* =============== COMPARE =============== */
+.compare{
+  max-width:1100px; margin:0 auto;
+  border:1px solid var(--card-border); border-radius:16px; background:var(--card);
+  box-shadow: 0 8px 24px rgba(0,0,0,.08); padding:18px;
+}
+.compare-bar{
+  display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:center; margin-bottom:14px;
+}
+.compare select{
+  padding:10px 12px; border-radius:10px; border:1px solid var(--card-border);
+  background:var(--bg); color:var(--text); min-width:200px;
+}
+.compare .btn.primary{ color:#fff; }
+.grid{
+  display:grid; grid-template-columns:1fr 1fr; gap:14px;
+}
+.panel{
+  border:1px solid var(--card-border); border-radius:12px; padding:12px; background:var(--bg);
+}
+.panel h3{ margin:0 0 8px; font-family:'Cinzel',serif; }
+.panel p{ margin:.35rem 0; font-size:14px; color:var(--muted); }
+.panel b{ color:var(--text); }
+
+/* =============== ANIMATIONS (on scroll) =============== */
+.reveal{ opacity:0; transform: translateY(16px); transition: opacity .6s ease, transform .6s ease; }
+.reveal.show{ opacity:1; transform: none; }
+
+/* Small tweaks */
+hr.sep{ max-width:1200px; height:1px; border:0; background:var(--card-border); margin:36px auto; }
+footer{ text-align:center; color:var(--muted); padding:28px 16px; }
+</style>
+</head>
+<body>
+  <!-- =================== HEADER =================== -->
+  <header class="header">
+    <div class="header-inner">
+      <h1 class="brand">Lost Cities & Civilizations</h1>
+      <p class="tag">Explore legendary places, see them on the map, test your knowledge, and compare their stories.</p>
+
+      <div class="header-actions">
+        <button class="btn primary" onclick="scrollToId('cards')">Explore Cards</button>
+        <button class="btn" onclick="scrollToId('map-wrap')">Map</button>
+        <button class="btn" onclick="scrollToId('quiz-wrap')">Quiz</button>
+        <button class="btn" onclick="scrollToId('compare-wrap')">Compare</button>
+        <button class="btn" id="themeBtn" onclick="toggleTheme()">🌙 Dark Mode</button>
+      </div>
+
+      <div class="search">
+        <input id="search" type="text" placeholder="Search city (e.g., Machu Picchu, Carthage, Timbuktu)…" oninput="filterCards()">
+      </div>
+    </div>
+  </header>
+
+  <!-- =================== CARDS =================== -->
+  <section id="cards" class="section reveal">
+    <h2>Lost Cities (Flip the cards)</h2>
+    <p class="sub">Click any card to flip and read details. Use the search bar above to filter.</p>
+    <div class="cards" id="cardsGrid"></div>
+  </section>
+
+  <hr class="sep">
+
+  <!-- =================== MAP =================== -->
+  <section id="map-wrap" class="section reveal">
+    <h2>World Map</h2>
+    <p class="sub">Markers use English names. Click a marker to jump to its city card.</p>
+    <div id="map"></div>
+  </section>
+
+  <hr class="sep">
+
+  <!-- =================== QUIZ =================== -->
+  <section id="quiz-wrap" class="section reveal">
+    <h2>Interactive Quiz</h2>
+    <p class="sub">Two multiple-choice questions per city. One attempt per question.</p>
+    <div class="quiz">
+      <div class="q-header">
+        <div id="qProgress"><b>Question 1</b></div>
+        <div id="qScore">Score: 0</div>
+      </div>
+      <div class="q-body" id="quizBody"></div>
+      <div class="q-body controls">
+        <button class="btn" onclick="prevQ()">Previous</button>
+        <button class="btn primary" onclick="nextQ()">Next</button>
+      </div>
+    </div>
+  </section>
+
+  <hr class="sep">
+
+  <!-- =================== COMPARE =================== -->
+  <section id="compare-wrap" class="section reveal">
+    <h2>Compare Civilizations</h2>
+    <p class="sub">Pick two cities to compare their era, location, civilization, structures, and a short summary.</p>
+    <div class="compare">
+      <div class="compare-bar">
+        <select id="selA"></select>
+        <select id="selB"></select>
+        <button class="btn primary" onclick="compare()">Compare</button>
+      </div>
+      <div class="grid" id="compareGrid">
+        <div class="panel" id="panelA"><em>Select a city…</em></div>
+        <div class="panel" id="panelB"><em>Select a city…</em></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>© 2025 Lost Cities Project</footer>
+
+<!-- =============== SCRIPTS =============== -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ------------ Data: 9 Cities (with 2 MCQs each) ------------ */
+const cities = [
+  {
+    name: "Angkor Wat",
+    image: "angkor.jpg",
+    location: "Siem Reap, Cambodia",
+    coords: [13.4125, 103.8670],
+    continent: "Asia",
+    era: "c. 12th century AD",
+    civilization: "Khmer Empire",
+    structures: "Temple complex, Moats, Bas-reliefs",
+    summary: "The largest religious monument in the world, originally Hindu, later Buddhist, showcasing Khmer architecture.",
+    funFact: "Angkor Wat faces west, which is unusual for Hindu temples.",
+    quiz: [
+      { q: "Angkor Wat was originally dedicated to which deity?", options: ["Vishnu","Shiva","Buddha","Indra"], answer: "Vishnu" },
+      { q: "In which country is Angkor Wat located?", options: ["Cambodia","Thailand","Vietnam","Laos"], answer: "Cambodia" }
+    ]
+  },
+  {
+    name: "Atlantis",
+    image: "atlantis.jpg",
+    location: "Legendary, possibly Mediterranean or Atlantic Ocean",
+    coords: [31.0, -24.0],
+    continent: "Legendary",
+    era: "Alleged ~9600 BC (Plato)",
+    civilization: "Legendary Atlantis",
+    structures: "Concentric rings of land and water, palaces, temples",
+    summary: "A mythical island described by Plato, said to have sunk into the ocean due to cataclysm.",
+    funFact: "Atlantis has inspired countless myths, books, and movies.",
+    quiz: [
+      { q: "Atlantis was first mentioned by?", options: ["Plato","Homer","Aristotle","Herodotus"], answer: "Plato" },
+      { q: "Atlantis is said to have:", options: ["Sunk into the sea","Survived till today","Been in Africa","Been in China"], answer: "Sunk into the sea" }
+    ]
+  },
+  {
+    name: "Babylon",
+    image: "babylon.jpg",
+    location: "Iraq, near modern Hillah",
+    coords: [32.5364, 44.4200],
+    continent: "Asia",
+    era: "c. 1894 BC – 539 BC",
+    civilization: "Babylonian Empire",
+    structures: "Ishtar Gate, Hanging Gardens, Ziggurats",
+    summary: "Famous Mesopotamian city known for its walls, gardens, and role in ancient empires.",
+    funFact: "Hammurabi's Code originated in Babylon.",
+    quiz: [
+      { q: "Babylon was located in which ancient region?", options: ["Mesopotamia","Indus Valley","Nile Delta","Anatolia"], answer: "Mesopotamia" },
+      { q: "Babylon is famous for its:", options: ["Hanging Gardens","Pyramids","Great Wall","Colosseum"], answer: "Hanging Gardens" }
+    ]
+  },
+  {
+    name: "Carthage",
+    image: "carthage.jpg",
+    location: "Tunisia (near modern Tunis)",
+    coords: [36.8529, 10.3230],
+    continent: "Africa",
+    era: "Founded ~814 BC; destroyed 146 BC; Roman Carthage later",
+    civilization: "Phoenician → Punic → Roman",
+    structures: "Harbors, Byrsa Hill, Punic ports",
+    summary: "A powerful Phoenician trading empire in the western Mediterranean, rival of Rome during the Punic Wars.",
+    funFact: "Hannibal crossed the Alps with war elephants against Rome.",
+    quiz: [
+      { q: "Carthage was founded by which seafaring people?", options: ["Phoenicians","Greeks","Hittites","Egyptians"], answer: "Phoenicians" },
+      { q: "Rome fought Carthage in the:", options: ["Peloponnesian Wars","Punic Wars","Crusades","Macedonian Wars"], answer: "Punic Wars" }
+    ]
+  },
+  {
+    name: "Damascus",
+    image: "damascus.jpg",
+    location: "Syria",
+    coords: [33.5138, 36.2765],
+    continent: "Asia",
+    era: "Settlement since ~3rd millennium BC; continuously inhabited",
+    civilization: "Aramean → Roman → Islamic Caliphates → Ottoman",
+    structures: "Ancient city walls, Umayyad Mosque",
+    summary: "One of the world’s oldest continuously inhabited cities, a crossroads of trade and culture in the Levant.",
+    funFact: "The Damascus steel legends are associated with Middle Eastern blades.",
+    quiz: [
+      { q: "Damascus is famous for being:", options: ["A sunken city","Continuously inhabited for millennia","A Mayan capital","Built on an island"], answer: "Continuously inhabited for millennia" },
+      { q: "A landmark of Damascus is the:", options: ["Umayyad Mosque","Colosseum","Angkor Wat","Stonehenge"], answer: "Umayyad Mosque" }
+    ]
+  },
+  {
+    name: "Dwaraka",
+    image: "dwaraka.jpg",
+    location: "Gujarat, India",
+    coords: [22.2519, 68.9683],
+    continent: "Asia",
+    era: "Legendary, ~3100 BC (Mahabharata era)",
+    civilization: "Yadava Kingdom",
+    structures: "Temples, City walls",
+    summary: "Ancient city associated with Krishna in Indian epic Mahabharata, believed to have submerged in the sea.",
+    funFact: "Archaeological underwater ruins may be linked to Dwaraka.",
+    quiz: [
+      { q: "Dwaraka is associated with which deity?", options: ["Krishna","Rama","Shiva","Vishnu"], answer: "Krishna" },
+      { q: "Where is Dwaraka located?", options: ["India","Sri Lanka","Nepal","Bangladesh"], answer: "India" }
+    ]
+  },
+  {
+    name: "Easter Island",
+    image: "easter island.jpg",
+    location: "Pacific Ocean, Chile",
+    coords: [-27.1127, -109.3497],
+    continent: "South America (Chile)",
+    era: "c. 1200–1600 AD",
+    civilization: "Rapa Nui",
+    structures: "Moai statues, Ahu platforms",
+    summary: "Remote island famous for massive stone statues, built by the Polynesian Rapa Nui people.",
+    funFact: "Some Moai weigh over 80 tons and were transported kilometers across the island.",
+    quiz: [
+      { q: "What are the massive statues on Easter Island called?", options: ["Moai","Obelisks","Stupas","Ziggurats"], answer: "Moai" },
+      { q: "Easter Island belongs to which country today?", options: ["Chile","France","USA","New Zealand"], answer: "Chile" }
+    ]
+  },
+  {
+    name: "Great Zimbabwe",
+    image: "great zimbabwe.jpg",
+    location: "Zimbabwe, Southeast Africa",
+    coords: [-20.267, 30.933],
+    continent: "Africa",
+    era: "c. 11th–15th centuries AD",
+    civilization: "Kingdom of Zimbabwe",
+    structures: "Great Enclosure, Hill Complex, Soapstone Carvings",
+    summary: "A medieval city known for its massive stone walls and as a center of trade in southern Africa.",
+    funFact: "The stone walls were built without mortar.",
+    quiz: [
+      { q: "Great Zimbabwe is famous for its:", options: ["Stone architecture","Pyramids","Aqueducts","Colosseums"], answer: "Stone architecture" },
+      { q: "In which continent is Great Zimbabwe located?", options: ["Africa","Asia","Europe","South America"], answer: "Africa" }
+    ]
+  },
+  {
+    name: "Machu Picchu",
+    image: "machu picchu.jpg",
+    location: "Peru, Andes Mountains",
+    coords: [-13.1631, -72.5450],
+    continent: "South America",
+    era: "c. 1450 AD (Inca Empire)",
+    civilization: "Inca",
+    structures: "Terraces, Temple of the Sun, Intihuatana",
+    summary: "A mysterious Incan citadel high in the Andes, rediscovered in 1911, known for its architecture and panoramic views.",
+    funFact: "Machu Picchu remained unknown to the outside world for centuries.",
+    quiz: [
+      { q: "Machu Picchu was built by which civilization?", options: ["Inca","Maya","Aztec","Olmec"], answer: "Inca" },
+      { q: "Where is Machu Picchu located?", options: ["Peru","Mexico","Chile","Brazil"], answer: "Peru" }
+    ]
+  },
+  {
+    name: "Mohenjo-Daro",
+    image: "mohenjo-daro.jpg",
+    location: "Sindh, Pakistan",
+    coords: [27.3294, 68.1386],
+    continent: "Asia",
+    era: "c. 2600–1900 BC",
+    civilization: "Indus Valley Civilization",
+    structures: "Urban grid, Great Bath, Granaries",
+    summary: "One of the largest settlements of the ancient Indus Valley, notable for advanced urban planning.",
+    funFact: "Mohenjo-Daro had one of the world's earliest known sewage systems.",
+    quiz: [
+      { q: "Mohenjo-Daro belonged to which civilization?", options: ["Indus Valley","Mesopotamia","Egyptian","Minoan"], answer: "Indus Valley" },
+      { q: "Which feature was Mohenjo-Daro famous for?", options: ["Great Bath","Pyramids","Stonehenge","Moai"], answer: "Great Bath" }
+    ]
+  },
+  {
+    name: "Nan Madol",
+    image: "nan madol.jpg",
+    location: "Pohnpei, Micronesia",
+    coords: [6.5200, 158.2000],
+    continent: "Oceania",
+    era: "c. 1200–1600 AD",
+    civilization: "Saudeleur Dynasty",
+    structures: "Stone canals, Artificial islets",
+    summary: "A city of stone islets and canals built in the Pacific, sometimes called the 'Venice of the Pacific'.",
+    funFact: "The city was built on a lagoon using massive basalt stones.",
+    quiz: [
+      { q: "Nan Madol is built on what?", options: ["Lagoon","Mountain","Desert","River"], answer: "Lagoon" },
+      { q: "Which ocean is Nan Madol located in?", options: ["Pacific","Atlantic","Indian","Arctic"], answer: "Pacific" }
+    ]
+  },
+  {
+    name: "Petra",
+    image: "petra.jpg",
+    location: "Jordan, Ma'an Governorate",
+    coords: [30.3285, 35.4444],
+    continent: "Asia",
+    era: "c. 5th century BC – 2nd century AD",
+    civilization: "Nabatean",
+    structures: "Treasury (Al-Khazneh), Monastery, Royal Tombs",
+    summary: "A rock-cut city famous for its rose-colored sandstone architecture and water conduit system.",
+    funFact: "Petra is called the 'Rose City' due to the color of the stone.",
+    quiz: [
+      { q: "Petra is located in which country?", options: ["Jordan","Egypt","Syria","Saudi Arabia"], answer: "Jordan" },
+      { q: "Petra was built by which civilization?", options: ["Nabateans","Romans","Greeks","Persians"], answer: "Nabateans" }
+    ]
+  },
+  {
+    name: "Pompeii",
+    image: "pompeii.jpg",
+    location: "Campania, Italy",
+    coords: [40.7460, 14.4989],
+    continent: "Europe",
+    era: "c. 6th century BC – 79 AD",
+    civilization: "Roman",
+    structures: "Amphitheater, Forum, Villas",
+    summary: "A Roman city preserved under volcanic ash from Mount Vesuvius, providing insight into Roman life.",
+    funFact: "Bodies were preserved in volcanic ash, giving detailed impressions of victims.",
+    quiz: [
+      { q: "Pompeii was destroyed by?", options: ["Mount Vesuvius","Etna","Herculaneum","Stromboli"], answer: "Mount Vesuvius" },
+      { q: "Pompeii belonged to which civilization?", options: ["Roman","Greek","Etruscan","Carthaginian"], answer: "Roman" }
+    ]
+  },
+  {
+    name: "Teotihuacan",
+    image: "teotihuacan.jpg",
+    location: "Mexico, near Mexico City",
+    coords: [19.6925, -98.8438],
+    continent: "North America",
+    era: "c. 100 BC – 550 AD",
+    civilization: "Teotihuacan civilization",
+    structures: "Pyramids of the Sun & Moon, Avenue of the Dead",
+    summary: "A massive Mesoamerican city famous for its pyramids, urban planning, and influence on later cultures.",
+    funFact: "The city's original builders are still unknown.",
+    quiz: [
+      { q: "Teotihuacan is famous for?", options: ["Pyramids","Moai","Ziggurats","Colosseum"], answer: "Pyramids" },
+      { q: "Teotihuacan is located in which country?", options: ["Mexico","Peru","USA","Guatemala"], answer: "Mexico" }
+    ]
+  },
+  {
+    name: "Timbuktu",
+    image: "timbuktu.jpg",
+    location: "Mali (near the Niger bend)",
+    coords: [16.7666, -3.0026],
+    continent: "Africa",
+    era: "c. 12th–16th centuries AD (gold-salt trade apex)",
+    civilization: "Mali & Songhai Empires",
+    structures: "Djinguereber Mosque, Sankoré madrasah",
+    summary: "A historic center of learning and trade in West Africa, famous for manuscripts and scholarship.",
+    funFact: "Timbuktu was a major hub for trans-Saharan gold and salt trade.",
+    quiz: [
+      { q: "Timbuktu was famous for:", options: ["Gold & salt trade","Spice trade","Silk Road","Silver mines"], answer: "Gold & salt trade" },
+      { q: "Which empire controlled Timbuktu during its peak?", options: ["Mali Empire","Roman Empire","Persian Empire","Ottoman Empire"], answer: "Mali Empire" }
+    ]
+  },
+  {
+    name: "Troy",
+    image: "troy.jpg",
+    location: "Hisarlik, Turkey",
+    coords: [39.9578, 26.2389],
+    continent: "Asia",
+    era: "c. 3000–85 BC",
+    civilization: "Ancient Troy / Anatolian",
+    structures: "City walls, Citadel, Tombs",
+    summary: "Famous for the Trojan War, immortalized by Homer in the Iliad.",
+    funFact: "The wooden horse is a legendary tactic associated with Troy.",
+    quiz: [
+      { q: "Troy is famous for?", options: ["Trojan War","Punic Wars","Peloponnesian War","Crusades"], answer: "Trojan War" },
+      { q: "Troy is located in which modern country?", options: ["Turkey","Greece","Italy","Syria"], answer: "Turkey" }
+    ]
+  },
+  {
+    name: "Rome",
+    image: "rome.jpg",
+    location: "Italy",
+    coords: [41.9028, 12.4964],
+    continent: "Europe",
+    era: "c. 8th century BC – 5th century AD",
+    civilization: "Roman Empire",
+    structures: "Colosseum, Roman Forum, Pantheon",
+    summary: "Capital of the Roman Empire, known for architecture, law, and conquest.",
+    funFact: "The Roman Colosseum could hold over 50,000 spectators.",
+    quiz: [
+      { q: "Rome was the capital of which empire?", options: ["Roman Empire","Greek Empire","Egyptian Empire","Ottoman Empire"], answer: "Roman Empire" },
+      { q: "The Colosseum was primarily used for:", options: ["Gladiatorial games","Markets","Palaces","Libraries"], answer: "Gladiatorial games" }
+    ]
+  },
+  {
+    name: "Athens",
+    image: "athens.jpg",
+    location: "Greece",
+    coords: [37.9838, 23.7275],
+    continent: "Europe",
+    era: "c. 5th–4th century BC (Golden Age of Athens)",
+    civilization: "Ancient Greek",
+    structures: "Acropolis, Parthenon, Agora",
+    summary: "A cradle of Western civilization, democracy, philosophy, and arts.",
+    funFact: "The word 'Acropolis' literally means 'high city'.",
+    quiz: [
+      { q: "Athens is considered the birthplace of:", options: ["Democracy","Monarchy","Feudalism","Communism"], answer: "Democracy" },
+      { q: "Famous temple on the Acropolis is:", options: ["Parthenon","Pantheon","Colosseum","Temple of Karnak"], answer: "Parthenon" }
+    ]
+  }
+];
+
+/* ------------ Utilities ------------ */
+const qs = (s, el=document) => el.querySelector(s);
+const qsa = (s, el=document) => [...el.querySelectorAll(s)];
+function scrollToId(id){ document.getElementById(id).scrollIntoView({behavior:'smooth'}); }
+
+/* ------------ Theme ------------ */
+const themeBtn = qs('#themeBtn');
+function applyTheme(t){
+  if(t==='dark'){ document.body.classList.add('dark'); themeBtn.textContent='☀️ Light Mode'; }
+  else{ document.body.classList.remove('dark'); themeBtn.textContent='🌙 Dark Mode'; }
+  localStorage.setItem('theme', t);
+}
+function toggleTheme(){
+  const t = document.body.classList.contains('dark') ? 'light' : 'dark';
+  applyTheme(t);
+}
+// default to light unless previously set
+applyTheme(localStorage.getItem('theme') || 'light');
+
+/* ------------ Build Cards ------------ */
+const cardsGrid = qs('#cardsGrid');
+
+function cardTemplate(c){
+  return `
+    <article class="card" data-name="${c.name.toLowerCase()}">
+      <div class="card-hit">
+        <div class="card-inner">
+          <div class="side front">
+            <div class="media"><img src="${c.image}" alt="${c.name}"></div>
+            <div class="title">${c.name}</div>
+            <div class="meta">
+              <span class="chip">${c.continent}</span>
+              <span class="chip">${c.civilization}</span>
+            </div>
+            <p class="summary">${c.summary}</p>
+          </div>
+          <div class="side back">
+            <div class="media"><img src="${c.image}" alt="${c.name}"></div>
+            <div class="details">
+              <p><b>Location:</b> ${c.location}</p>
+              <p><b>Era:</b> ${c.era}</p>
+              <p><b>Civilization:</b> ${c.civilization}</p>
+              <p><b>Structures:</b> ${c.structures}</p>
+              <p><b>Fun Fact:</b> ${c.funFact}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>`;
+}
+cardsGrid.innerHTML = cities.map(cardTemplate).join("");
+
+/* Flip on click (only inside the card, not when selecting text) */
+qsa('.card').forEach(card=>{
+  const hit = qs('.card-hit', card);
+  hit.addEventListener('click', (e)=>{
+    // ignore clicks on links or selections
+    if(getSelection()?.toString()) return;
+    card.classList.toggle('is-flipped');
+  }, false);
+});
+
+/* ------------ Search Filter ------------ */
+function filterCards(){
+  const term = qs('#search').value.trim().toLowerCase();
+  qsa('.card').forEach(c=>{
+    const match = c.dataset.name.includes(term);
+    c.style.display = match ? '' : 'none';
+  });
+}
+
+/* ------------ Map ------------ */
+let map = L.map('map', { zoomControl:true }).setView([18, 8], 2);
+const tiles = L.tileLayer(
+  'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+  { attribution: '&copy; OpenStreetMap, &copy; CARTO' }
+).addTo(map);
+
+const markers = [];
+cities.forEach((c, idx)=>{
+  if(!c.coords) return;
+  const m = L.marker(c.coords).addTo(map).bindPopup(`<b>${c.name}</b><br>${c.location}`);
+  m.on('click', ()=>{
+    const card = qsa('.card')[idx];
+    if(card){
+      card.scrollIntoView({behavior:'smooth', block:'center'});
+      card.classList.add('is-flipped');
+      // brief highlight effect
+      const hit = qs('.card-hit', card);
+      hit.style.outline = `2px solid var(--accent)`;
+      setTimeout(()=> hit.style.outline='none', 900);
+    }
+  });
+  markers.push(m);
+});
+
+/* ------------ Quiz (2 per city, one attempt) ------------ */
+const allQuestions = cities.flatMap(city =>
+  city.quiz.map(q => ({ city: city.name, ...q }))
+);
+
+let qIndex = 0;
+let score = 0;
+const quizBody = qs('#quizBody');
+const qProgress = qs('#qProgress');
+const qScore = qs('#qScore');
+
+function renderQ(){
+  const item = allQuestions[qIndex];
+  qProgress.innerHTML = `<b>Question ${qIndex+1} of ${allQuestions.length}</b> • <span style="color:var(--muted)">${item.city}</span>`;
+  qScore.textContent = `Score: ${score}`;
+  quizBody.innerHTML = `
+    <div class="q">
+      <p>${item.q}</p>
+      <div class="opts">
+        ${item.options.map((opt,i)=>`<button class="opt" data-i="${i}">${opt}</button>`).join('')}
+      </div>
+    </div>
+  `;
+  const opted = new Set();
+  qsa('.opt', quizBody).forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      // single attempt guard
+      if(opted.size) return;
+      opted.add(1);
+      const chosen = btn.textContent.trim();
+      if(chosen === item.answer){
+        btn.classList.add('correct');
+        score++; qScore.textContent = `Score: ${score}`;
+      }else{
+        btn.classList.add('wrong');
+        // mark the correct one
+        qsa('.opt', quizBody).forEach(b=>{
+          if(b.textContent.trim() === item.answer) b.classList.add('correct');
+        });
+      }
+    }, {once:false});
+  });
+}
+function nextQ(){ if(qIndex < allQuestions.length-1){ qIndex++; renderQ(); } }
+function prevQ(){ if(qIndex > 0){ qIndex--; renderQ(); } }
+renderQ();
+
+/* ------------ Compare ------------ */
+const selA = qs('#selA'), selB = qs('#selB');
+selA.innerHTML = cities.map((c,i)=>`<option value="${i}">${c.name}</option>`).join('');
+selB.innerHTML = selA.innerHTML;
+
+function renderPanel(el, c){
+  el.innerHTML = `
+    <h3>${c.name}</h3>
+    <p><b>Location:</b> ${c.location}</p>
+    <p><b>Continent:</b> ${c.continent}</p>
+    <p><b>Era:</b> ${c.era}</p>
+    <p><b>Civilization:</b> ${c.civilization}</p>
+    <p><b>Key Structures:</b> ${c.structures}</p>
+    <p><b>Summary:</b> ${c.summary}</p>
+    <p><b>Fun Fact:</b> ${c.funFact}</p>
+  `;
+}
+function compare(){
+  const a = cities[+selA.value], b = cities[+selB.value];
+  renderPanel(qs('#panelA'), a);
+  renderPanel(qs('#panelB'), b);
+}
+
+/* ------------ Scroll reveal animations ------------ */
+const obs = new IntersectionObserver((entries, o)=>{
+  entries.forEach(en=>{
+    if(en.isIntersecting){ en.target.classList.add('show'); o.unobserve(en.target); }
+  });
+},{threshold:.12});
+qsa('.reveal').forEach(el=>obs.observe(el));
+</script>
+</body>
+</html>
